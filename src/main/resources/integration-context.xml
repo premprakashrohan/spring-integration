@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-5.1.xsd">
+
+	<int:channel id="inputChannel" />
+	<int:channel id="outputChannel" />
+	<bean class="com.ps.demo.PrintService" id="printService" />
+	<int:service-activator ref="printService"
+		method="print" input-channel="inputChannel"
+		output-channel="outputChannel">
+	</int:service-activator>
+	
+	
+	<int:channel id="aloneInputChannel" />
+	
+	<bean class="com.ps.demo.PrintService" id="anotherPrintService" />
+	<int:service-activator ref="anotherPrintService" order="1" method="print" input-channel="aloneInputChannel"/>
+	
+	<!-- QueueChannelExample -->
+	<int:gateway service-interface="com.ps.demo.PrinterGateway"  id="gateway"
+	default-request-channel="queueInputChannel">
+	
+	</int:gateway>
+	<int:channel id="queueInputChannel" >
+		<int:queue capacity="10"/>
+	</int:channel>
+	<bean class="com.ps.demo.QueueChanelPrintService" id="queuePrintService" />
+	<int:service-activator ref="queuePrintService"
+		method="print" input-channel="queueInputChannel">
+		<int:poller fixed-rate="5" time-unit="SECONDS" max-messages-per-poll="2"/>
+	</int:service-activator>
+	
+	<!-- PriorityChannelExample -->
+	<int:gateway service-interface="com.ps.demo.PrinterGateway"  id="priorityGateway"
+	default-request-channel="priorityInputChannel">
+	
+	</int:gateway>
+	<int:channel id="priorityInputChannel" >
+		<int:priority-queue capacity="10"/>
+	</int:channel>
+	<bean class="com.ps.demo.QueueChanelPrintService" id="priorityPrintService" />
+	<int:service-activator ref="priorityPrintService"
+		method="print" input-channel="priorityInputChannel">
+		<int:poller fixed-rate="5" time-unit="SECONDS" max-messages-per-poll="2"/>
+	</int:service-activator>
+	
+	
+	<!-- Comparator priority channel -->
+	<bean id="customComparator" class="com.ps.demo.CustomMessageComparator"/>
+	<int:gateway service-interface="com.ps.demo.PrinterGateway"  
+				 id="comparatorPriorityGateway"
+				 default-request-channel="comparatorPriorityInputChannel">
+	
+	</int:gateway>
+	<int:channel id="comparatorPriorityInputChannel" >
+		<int:priority-queue capacity="10" comparator="customComparator"/>
+	</int:channel>
+	<bean class="com.ps.demo.QueueChanelPrintService" id="comparatorPriorityPrintService" />
+	<int:service-activator ref="comparatorPriorityPrintService"
+		method="print" input-channel="comparatorPriorityInputChannel">
+		<int:poller fixed-rate="10" time-unit="SECONDS" max-messages-per-poll="2"/>
+	</int:service-activator>
+	
+	
+	<!-- Direct Channel -->
+	<int:channel id="directChannel" >
+		<int:dispatcher failover="false" />
+	</int:channel>
+	<int:gateway service-interface="com.ps.demo.PrinterGateway"  
+				 id="directChannelGateway"
+				 default-request-channel="directChannel">
+	
+	</int:gateway>
+	
+	<bean id="upperCasePrinService" class="com.ps.demo.UppercasePrintService"/>
+	<bean id="lowerCasePrinService" class="com.ps.demo.LowercasePrintService"/>
+	
+	
+	<int:service-activator ref="upperCasePrinService" order="2" method="print" input-channel="directChannel"/>
+	<int:service-activator ref="lowerCasePrinService" order="1" method="print" input-channel="directChannel"/>
+</beans>
